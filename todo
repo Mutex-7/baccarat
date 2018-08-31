@@ -1,0 +1,48 @@
+In order to do the file save/load thing, I think I need to keep the engine code server-side.
+  Might be possible to do this entirely in the UI, but that would require user interaction.
+  Just easier to do server-side.
+
+The plan:
+Server boots up.
+Starts new game immediately.
+Send new game page to client.
+Client starts with new game.
+
+Client has a button to load most recent save.
+  Send load message to server.
+  Server parses file on disk. Validation, etc. Spec!
+  Sends game data to client.
+  Client parses. Spec?
+  Client updates it's atoms.
+
+Client has button to save game to edn.
+  Notify server to save the game.
+  Server saves a copy of the game state to disk.
+  Server notifies client that game was saved (un?)successfully.
+
+Game is running:
+Player updates bet values.
+Place bet is pressed.
+Get bet data, validate. :on-change into an r/atom?
+Bet is sent to server via ajax.
+Parse data server side. Good excuse to use spec!
+Deal new hand.
+Determine result of new hand+bet, adjust stats and money accordingly.
+Send updated state to the client.
+Client parses. Can we spec on the front end? Is that a thing?
+Client updates it's atoms.
+React does the rest.
+
+Then to deal with this shitty UI.
+CSS
+SVG
+*sigh*
+
+Need a money variable on the client side.
+:on-change validate the number, let the user know when the total bets are higher then their actual money
+server needs the remote to find out what the total of the bets were, send error message when moneycheck doesn't pass.
+remote calls engine to run one round
+send updated ui-related data to the client
+client needs to validate data it was given.
+client needs to dump back into r/atoms.
+Where the hell do I work spec into this?

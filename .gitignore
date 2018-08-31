@@ -7,3 +7,5 @@
 *.cljc~
 *.cljs~
 .directory
+.nrepl-history
+/out

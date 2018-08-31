@@ -1,8 +1,9 @@
-(ns baccarat.core
+(ns baccarat.handlers
   (:require [compojure.core :refer [defroutes GET POST]]
             [compojure.route :refer [not-found files resources]]
             [compojure.handler :refer [site]]
-            [ring.util.response :as response]))
+            [ring.util.response :as response]
+            [shoreleave.middleware.rpc :refer [wrap-rpc]]))
 
 (defroutes handler
   (GET "/" [] (response/redirect "index.html")) ;; oh, cool. I can just do that.
@@ -12,4 +13,5 @@
 
 (def app
   (-> (var handler)
+      (wrap-rpc)
       (site)))

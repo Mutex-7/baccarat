@@ -1,21 +1,23 @@
 (set-env!
  :source-paths #{"src/clj" "src/cljs" "src/cljc"}
  :resource-paths #{"public"}
- :dependencies '[[org.clojure/clojure "1.8.0"]                       ;; CLJ
-                 [org.clojure/clojurescript "1.10.339"]              ;; CLJS
-                 [adzerk/boot-cljs "2.1.4"]                          ;; CLJS compiler
-                 [adzerk/boot-test "1.2.0"]                          ;; CLJ testing
-                 [adzerk/boot-reload "0.6.0"]                        ;; Reloading
-                 [adzerk/boot-cljs-repl "0.3.3"]                     ;; CLJS repl
-                 [com.cemerick/piggieback "0.2.1" :scope "test"]     ;; Needed for boot-cljs-repl
-                 [weasel "0.7.0" :scope "test"]                      ;; Needed for boot-cljs-repl
-                 [org.clojure/tools.nrepl "0.2.12" :scope "test"]    ;; Needed for boot-cljs-repl
-                 [pandeiro/boot-http "0.8.3"]                        ;; Web server
-                 [compojure "1.6.1"]                                 ;; Compojure
-                 [crisptrutski/boot-cljs-test "0.3.4" :scope "test"] ;; CLJS testing
-                 [reagent "0.8.1"]                                   ;; Reagent
-                 [javax.servlet/javax.servlet-api "3.1.0"]           ;; ring/ring-core needs this in dev/testing
-                 [cljsjs/marked "0.3.5-1"]])                         ;; Markdown helper
+ :dependencies '[[org.clojure/clojure "1.8.0"]             ;; CLJ
+                 [org.clojure/clojurescript "1.9.473"]     ;; CLJS
+                 [adzerk/boot-cljs "2.1.4"]                ;; CLJS compiler
+                 [adzerk/boot-test "1.2.0"]                ;; CLJ testing
+                 [adzerk/boot-reload "0.6.0"]              ;; Reloading
+                 [adzerk/boot-cljs-repl "0.3.3"]           ;; CLJS repl
+                 [com.cemerick/piggieback "0.2.1"]         ;; Needed for boot-cljs-repl
+                 [weasel "0.7.0"]                          ;; Needed for boot-cljs-repl
+                 [org.clojure/tools.nrepl "0.2.12"]        ;; Needed for boot-cljs-repl
+                 [pandeiro/boot-http "0.8.3"]              ;; Web server
+                 [compojure "1.6.1"]                       ;; Compojure
+                 [crisptrutski/boot-cljs-test "0.3.4"]     ;; CLJS testing
+                 [reagent "0.6.1"]                         ;; Reagent
+                 [javax.servlet/javax.servlet-api "3.1.0"] ;; ring/ring-core needs this in dev/testing
+                 [org.clojars.magomimmo/shoreleave-remote-ring "0.3.3"]
+                 [org.clojars.magomimmo/shoreleave-remote "0.3.1"] ;; Aw screw it already, all other ajax libs look broken.
+                 [cljsjs/marked "0.3.5-1"]])               ;; Markdown helper
 
 ;; In the future, adjust some nrepl stuff for cider?
 ;; going to need a js engine for tests. find one.
@@ -30,7 +32,8 @@
 (def defaults {:test-dirs #{"test/cljc" "test/clj" "test/cljs"}
                :output-to "main.js"
                :testbed :phantom
-               :namespaces '#{baccarat.validators}})
+               ;;:namespaces '#{baccarat.validators}
+               })
 
 (deftask add-source-paths
   "Add paths to :source-paths environment variable"
@@ -53,7 +56,7 @@
         testbed (or testbed (:testbed defaults))
         namespaces (or namespaces (:namespaces defaults))]
     (comp
-     (serve :handler 'baccarat.core/app
+     (serve :handler 'baccarat.handlers/app
             :resource-root "target"
             :reload true
             :httpkit httpkit
@@ -74,11 +77,11 @@
   "Launch reloadable environment."
   []
   (comp
-   (serve :handler 'baccarat.core/app
+   (serve :handler 'baccarat.handlers/app
           :resource-root "target"
           :reload true)
-   (watch)
-   (reload)
+   (watch :verbose true)
+   (reload :ws-host "localhost")
    (cljs-repl)
    (cljs)
    (target :dir #{"target"})))
