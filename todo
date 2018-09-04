@@ -38,11 +38,11 @@ CSS
 SVG
 *sigh*
 
-Need a money variable on the client side.
-:on-change validate the number, let the user know when the total bets are higher then their actual money
 server needs the remote to find out what the total of the bets were, send error message when moneycheck doesn't pass.
 remote calls engine to run one round
 send updated ui-related data to the client
 client needs to validate data it was given.
 client needs to dump back into r/atoms.
 Where the hell do I work spec into this?
+
+I did not do validation in baccarat.remotes.
