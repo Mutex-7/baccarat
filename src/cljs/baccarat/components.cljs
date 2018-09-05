@@ -15,8 +15,11 @@
                           :dragons 1}))
 
 (def last-round (reagent/atom {:player-hand [0 1 2]
-                               :dealer-hand [0 1 2]}))
+                               :dealer-hand [0 1 2]
+                               :panda false
+                               :dragon false}))
 
+;; WARNING These end up with strings in them!
 (def current-bet (reagent/atom {:player-bet 0
                                 :dealer-bet 0
                                 :tie-bet 0
@@ -28,21 +31,41 @@
 (defn round-results
   "Displays results of last hand."
   [last-round]
-  [:div {:id round-results}
-   [:div "Round results:"]
-   [:div "Player's cards were: " (for [card-num (:player-hand @last-round)]
-                                  (str (engine/num->card card-num) " "))]
-   [:div "Player's score was: " (engine/score (:player-hand @last-round))]
-   [:div "Dealer's cards were: " (for [card-num (:dealer-hand @last-round)]
-                                   (str (engine/num->card card-num) " "))]
-   [:div "Dealer's score was: " (engine/score (:dealer-hand @last-round))]])
+  (let [player-score (engine/score (:player-hand @last-round))
+        dealer-score (engine/score (:dealer-hand @last-round))
+        winning-hand (cond (= player-score dealer-score) "Hand was a tie."
+                           (> player-score dealer-score) "Player hand wins."
+                           (< player-score dealer-score) "Dealer hand wins."
+                           :else "No idea what just happened. Ask Mutex, give him your history file.")]
+    [:div {:id round-results}
+     [:div "Round results:"]
+     [:div "Player's cards were: " (for [card-num (:player-hand @last-round)]
+                                     (str (engine/num->card card-num) " "))]
+     [:div "Player's score was: " player-score]
+     [:div "Dealer's cards were: " (for [card-num (:dealer-hand @last-round)]
+                                     (str (engine/num->card card-num) " "))]
+     [:div "Dealer's score was: " dealer-score]
+     [:div "Money has gone up/down by this-many"]
+     [:div winning-hand]
+     (when (:panda @last-round)
+       [:div "Panda insurance has paid off!"])
+     (when (:dragon @last-round)
+       [:div "Dragon insurance has paid off!"])]))
 
 (defn bet-update
   "Places results of bet into reagent atoms."
   [bet-results]
   (reset! money (:money bet-results))
   (swap! last-round assoc :player-hand (:player-hand bet-results))
-  (swap! last-round assoc :dealer-hand (:dealer-hand bet-results)))
+  (swap! last-round assoc :dealer-hand (:dealer-hand bet-results))
+  (if (and (= 8 (engine/score (:player-hand bet-results)))
+           (nat-int? (js/parseInt (:panda-bet @current-bet))))
+    (swap! last-round assoc :panda true)
+    (swap! last-round assoc :panda false))
+  (if (and (= 7 (engine/score (:dealer-hand bet-results)))
+           (nat-int? (js/parseInt (:dragon-bet @current-bet))))
+    (swap! last-round assoc :dragon true)
+    (swap! last-round assoc :dragon false)))
 
 (defn send-bet
   "Sends bet to the server side via ajax."

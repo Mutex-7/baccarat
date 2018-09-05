@@ -30,8 +30,6 @@ remotes:
   -handle a save command
   -handle a load command
 components/round-results:
-  -colored text based on black or red card.
-  -indicate result of hand (player win, dealer win, tie).
   -indicate diff in money.
 components/bet-update:
   -update running stats as much as possible
@@ -40,3 +38,6 @@ components/bet-update:
   -handle case where the server tells us about bogus input
 components/place-bet:
   -Is this a bit long or repetetive? Refactor with a macro or something?
+
+Bugs:
+Spamming insurance bets = surefire money making scheme. Not right at all. What's up with that?
