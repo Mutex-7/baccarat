@@ -14,8 +14,8 @@
                           :pandas 2
                           :dragons 1}))
 
-(def last-round (reagent/atom {:player-hand [1 2 3]
-                               :dealer-hand [3 2 1]}))
+(def last-round (reagent/atom {:player-hand [0 1 2]
+                               :dealer-hand [0 1 2]}))
 
 (def current-bet (reagent/atom {:player-bet 0
                                 :dealer-bet 0
@@ -25,42 +25,17 @@
 
 (def money (reagent/atom engine/starting-money))
 
-(defn cockroach-pig
-  "Displays cockroach pig."
-  []
-  [:div "Cockroach pig goes here."])
-
-(defn small-road
-  "Displays small road."
-  []
-  [:div "Small road goes here."])
-
-(defn big-eye-boy
-  "Displays big eye boy."
-  []
-  [:div "Big eye boy goes here."])
-
-(defn big-road
-  "Displays big road."
-  []
-  [:div "Big road goes here."])
-
-(defn bead-plate
-  "Displays bead plate."
-  []
-  [:div "Bead plate goes here."])
-
-;; TODO
-;; convert shoe number to actual card
-;; indicate result of hand (player, dealer, tie)
-;; indicate diff in money
 (defn round-results
   "Displays results of last hand."
   [last-round]
   [:div {:id round-results}
    [:div "Round results:"]
-   [:div "Players cards were: " (for [card (:player-hand last-round)] card)]
-   [:div "Dealers cards were: " (for [card (:dealer-hand last-round)] card)]])
+   [:div "Player's cards were: " (for [card-num (:player-hand @last-round)]
+                                  (str (engine/num->card card-num) " "))]
+   [:div "Player's score was: " (engine/score (:player-hand @last-round))]
+   [:div "Dealer's cards were: " (for [card-num (:dealer-hand @last-round)]
+                                   (str (engine/num->card card-num) " "))]
+   [:div "Dealer's score was: " (engine/score (:dealer-hand @last-round))]])
 
 (defn bet-update
   "Places results of bet into reagent atoms."
@@ -83,11 +58,12 @@
           (not (nat-int? panda-bet)) (js/alert "Panda insurance must be a non-negative, whole number.")
           (not (nat-int? dragon-bet)) (js/alert "Dragon insurance must be a non-negative, whole number.")
           (< @money (+ player-bet dealer-bet tie-bet panda-bet dragon-bet)) (js/alert "Sum of total bets placed exceeds your current funds.")
+          (= 0 (+ player-bet dealer-bet tie-bet panda-bet dragon-bet)) (js/alert "You cannot make a total bet of zero.")
           :else (remote-callback :handle-bet
                                  [player-bet dealer-bet tie-bet panda-bet dragon-bet]
                                  #(bet-update %)))))
 
-(defn place-bets ;; Getting a bit long?
+(defn place-bets ;; Getting a bit long/repetetive?
   "Use these textboxes to place your bets."
   []
   [:div {:id "place-bets"}
@@ -112,15 +88,15 @@
              :type "text"
              :placeholder "0"
              :on-change #(swap! current-bet assoc :tie-bet (-> %
-                                                                  .-target
-                                                                  .-value))}]
+                                                               .-target
+                                                               .-value))}]
     [:div "Panda eight"]
     [:input {:id "panda-bet"
              :type "text"
              :placeholder "0"
              :on-change #(swap! current-bet assoc :panda-bet (-> %
-                                                                  .-target
-                                                                  .-value))}]
+                                                                 .-target
+                                                                 .-value))}]
     [:div "Dragon seven"]
     [:input {:id "dragon-bet"
              :type "text"
@@ -145,35 +121,24 @@
    [:div "Dragons: " (:dragons stats)]
    [:div "Money: " (:money stats)]])
 
-(defn right-side
-  "Displays right side of screen."
-  []
-  [:div {:id "right"}
-   [bead-plate]
-   [big-road]
-   [big-eye-boy]
-   [small-road]
-   [cockroach-pig]])
-
 (defn display-money
   [money]
-  [:div "Your money is: " money])
+  [:div "Your money is: " @money])
 
 (defn left-side
   "Displays left side of screen."
   []
   [:div {:id "left"}
-   #_[stats-table stats]
+   #_[stats-table @stats]
    [place-bets]
-   [display-money @money]
-   [round-results @last-round]])
+   [display-money money]
+   [round-results last-round]])
 
 (defn full-screen
   "Just a default component"
   [stats]
   [:div {:id "fullscreen"}
-   [left-side]
-   #_[right-side]])
+   [left-side]])
 
 (defn ^:export init []
   (reagent/render [full-screen] (.getElementById js/document "content")))

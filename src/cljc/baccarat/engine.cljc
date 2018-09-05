@@ -6,14 +6,21 @@
 (def max-games 1500)
 (def starting-money 10000) ;; TODO when you do the write-history-to-file route, make sure the history includes a starting struct
 (def max-bet 100)
-(def draw-table [[false false false false false false false false false false]
-                [false false false false false false false false false false]
-                [false false false false false false false false false false]
-                [false false false false false false false false true false]
-                [true true false false false false false false true true]
-                [true true true true false false false false true true]
-                [true true true true true true false false true true]
-                [true true true true true true true true true true]])
+(def draw-table [[false false false false false false false false false false] ;; TODO turn this into a function instead of a table?
+                 [false false false false false false false false false false]
+                 [false false false false false false false false false false]
+                 [false false false false false false false false true false]
+                 [true true false false false false false false true true]
+                 [true true true true false false false false true true]
+                 [true true true true true true false false true true]
+                 [true true true true true true true true true true]])
+(def faces ["A" "2" "3" "4" "5" "6" "7" "8" "9" "10" "J" "Q" "K"])
+(def suits ["♠" "♣" "♥" "♦"])
+(def face-values (into [] (mapcat identity
+                                  (for [i (range 4)]
+                                    (for [j (range 13)]
+                                      {:suit (nth suits i)
+                                       :number (nth faces j)})))))
 
 (defn new-bet
   "A map representing a bid made by the gambler for this round."
@@ -45,6 +52,12 @@
   "Given a card number from the shoe, determine it's point value."
   [num]
   (nth point-values (mod num (count point-values))))
+
+(defn num->card
+  "Given a card number from the shoe, determine it's face value."
+  [num]
+  (let [card-map (nth face-values (mod num (count face-values)))]
+    (str (:number card-map) (:suit card-map))))
 
 (defn dealer-draw?
   "Determine if the banker is supposed to draw a card or not."
