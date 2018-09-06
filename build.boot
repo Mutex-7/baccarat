@@ -17,6 +17,7 @@
                  [javax.servlet/javax.servlet-api "3.1.0"] ;; ring/ring-core needs this in dev/testing
                  [org.clojars.magomimmo/shoreleave-remote-ring "0.3.3"]
                  [org.clojars.magomimmo/shoreleave-remote "0.3.1"] ;; Aw screw it already, all other ajax libs look broken.
+                 [doo "0.1.7"] ;; For testing
                  [cljsjs/marked "0.3.5-1"]])               ;; Markdown helper
 
 ;; In the future, adjust some nrepl stuff for cider?
@@ -30,10 +31,9 @@
          '[crisptrutski.boot-cljs-test :refer [test-cljs]])
 
 (def defaults {:test-dirs #{"test/cljc" "test/clj" "test/cljs"}
-               :output-to "main.js"
                :testbed :phantom
-               ;;:namespaces '#{baccarat.validators}
-               })
+               :output-to "main.js"
+               :namespaces '#{baccarat.engine-test}})
 
 (deftask add-source-paths
   "Add paths to :source-paths environment variable"
@@ -65,8 +65,8 @@
      (watch :verbose verbose)
      (reload :ws-host "localhost")
      (cljs-repl)
-     (test-cljs :out-file output-to
-                :js-env testbed
+     (cljs)
+     (test-cljs :js-env testbed
                 :update-fs? true
                 :optimizations optimizations
                 :namespaces namespaces)

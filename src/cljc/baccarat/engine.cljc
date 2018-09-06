@@ -6,14 +6,14 @@
 (def max-games 1500)
 (def starting-money 10000) ;; TODO when you do the write-history-to-file route, make sure the history includes a starting struct
 (def max-bet 100)
-(def draw-table [[false false false false false false false false false false] ;; TODO turn this into a function instead of a table?
-                 [false false false false false false false false false false]
-                 [false false false false false false false false false false]
-                 [false false false false false false false false true false]
-                 [true true false false false false false false true true]
-                 [true true true true false false false false true true]
-                 [true true true true true true false false true true]
-                 [true true true true true true true true true true]])
+(def draw-table [[true true true true true true true true true true] ;; TODO turn this into a function instead of a table?
+                 [true true true true true true true true true true]
+                 [true true true true true true true true true true]
+                 [true true true true true true true true false true]
+                 [false false true true true true true true false false]
+                 [false false false false true true true true false false]
+                 [false false false false false false true true false false]
+                 [false false false false false false false false false false]])
 (def faces ["A" "2" "3" "4" "5" "6" "7" "8" "9" "10" "J" "Q" "K"])
 (def suits ["♠" "♣" "♥" "♦"])
 (def face-values (into [] (mapcat identity
@@ -73,7 +73,7 @@
     (shuffle (range shoe-size))
     shoe))
 
-(defn score ;; TODO easy to test!
+(defn score
   "Determine the score of a hand."
   [hand]
   (loop [acc hand
@@ -82,7 +82,7 @@
       (recur (rest acc) (mod (+ score (num->value (first acc))) 10))
       score)))
 
-(defn update-money ;; TODO record update
+(defn update-money
   "Settle outstanding bets."
   [money record]
   (let [player-score (score (:player-hand record))
