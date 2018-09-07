@@ -1,8 +1,8 @@
 (set-env!
  :source-paths #{"src/clj" "src/cljs" "src/cljc"}
  :resource-paths #{"public"}
- :dependencies '[[org.clojure/clojure "1.8.0"]             ;; CLJ
-                 [org.clojure/clojurescript "1.9.473"]     ;; CLJS
+ :dependencies '[[org.clojure/clojure "1.9.0"]             ;; CLJ
+                 [org.clojure/clojurescript "1.10.339"]    ;; CLJS
                  [adzerk/boot-cljs "2.1.4"]                ;; CLJS compiler
                  [adzerk/boot-test "1.2.0"]                ;; CLJ testing
                  [adzerk/boot-reload "0.6.0"]              ;; Reloading
@@ -12,16 +12,13 @@
                  [org.clojure/tools.nrepl "0.2.12"]        ;; Needed for boot-cljs-repl
                  [pandeiro/boot-http "0.8.3"]              ;; Web server
                  [compojure "1.6.1"]                       ;; Compojure
-                 [crisptrutski/boot-cljs-test "0.3.4"]     ;; CLJS testing
-                 [reagent "0.6.1"]                         ;; Reagent
+                 [crisptrutski/boot-cljs-test "0.3.4"]     ;; CLJS testing - fried
+                 [reagent "0.8.1"]                         ;; Reagent
                  [javax.servlet/javax.servlet-api "3.1.0"] ;; ring/ring-core needs this in dev/testing
                  [org.clojars.magomimmo/shoreleave-remote-ring "0.3.3"]
                  [org.clojars.magomimmo/shoreleave-remote "0.3.1"] ;; Aw screw it already, all other ajax libs look broken.
-                 [doo "0.1.7"] ;; For testing
-                 [cljsjs/marked "0.3.5-1"]])               ;; Markdown helper
-
-;; In the future, adjust some nrepl stuff for cider?
-;; going to need a js engine for tests. find one.
+                 [doo "0.1.8"] ;; cljs tests
+                 [cljsjs/marked "0.3.5-1"]])
 
 (require '[adzerk.boot-cljs :refer [cljs]]
          '[adzerk.boot-reload :refer [reload]]

@@ -37,7 +37,7 @@
                            (> player-score dealer-score) "Player hand wins."
                            (< player-score dealer-score) "Dealer hand wins."
                            :else "No idea what just happened. Ask Mutex, give him your history file.")]
-    [:div {:id round-results}
+    [:div
      [:div "Round results:"]
      [:div "Player's cards were: " (for [card-num (:player-hand @last-round)]
                                      (str (engine/num->card card-num) " "))]
