@@ -4,6 +4,7 @@
             [clojure.string]
             [baccarat.engine :as engine]
             [cljs.reader :refer [read-string]]
+            [baccarat.validators :as val]
             [shoreleave.remotes.http-rpc :refer [remote-callback]])
   (:require-macros [shoreleave.remotes.macros :as macros]))
 
@@ -26,7 +27,7 @@
                                 :panda-bet 0
                                 :dragon-bet 0}))
 
-(def money (reagent/atom engine/starting-money))
+(def money (reagent/atom engine/starting-money)) ;; not always the case. make sure to try for @session's :money
 
 (defn round-results
   "Displays results of last hand."
@@ -55,36 +56,41 @@
 (defn bet-update
   "Places results of bet into reagent atoms."
   [bet-results]
+  ;;(js/alert bet-results)
   (reset! money (:money bet-results))
   (swap! last-round assoc :player-hand (:player-hand bet-results))
   (swap! last-round assoc :dealer-hand (:dealer-hand bet-results))
   (if (and (= 8 (engine/score (:player-hand bet-results)))
-           (nat-int? (js/parseInt (:panda-bet @current-bet))))
+           (pos? (js/Number (:panda-bet @current-bet))))
     (swap! last-round assoc :panda true)
     (swap! last-round assoc :panda false))
   (if (and (= 7 (engine/score (:dealer-hand bet-results)))
-           (nat-int? (js/parseInt (:dragon-bet @current-bet))))
+           (pos? (js/Number (:dragon-bet @current-bet))))
     (swap! last-round assoc :dragon true)
     (swap! last-round assoc :dragon false)))
 
-(defn send-bet
-  "Sends bet to the server side via ajax."
+(defn get-bets
   []
-  (let [player-bet (js/parseInt (:player-bet @current-bet))
-        dealer-bet (js/parseInt (:dealer-bet @current-bet))
-        tie-bet (js/parseInt (:tie-bet @current-bet))
-        panda-bet (js/parseInt (:panda-bet @current-bet))
-        dragon-bet (js/parseInt (:dragon-bet @current-bet))]
+  (let [player-bet (js/Number (:player-bet @current-bet))
+        dealer-bet (js/Number (:dealer-bet @current-bet))
+        tie-bet (js/Number (:tie-bet @current-bet))
+        panda-bet (js/Number (:panda-bet @current-bet))
+        dragon-bet (js/Number (:dragon-bet @current-bet))
+        bet-map (engine/new-bet player-bet dealer-bet tie-bet panda-bet dragon-bet)]
     (cond (not (nat-int? player-bet)) (js/alert "Player bet must be a non-negative, whole number.")
           (not (nat-int? dealer-bet)) (js/alert "Dealer bet must be a non-negative, whole number.")
           (not (nat-int? tie-bet)) (js/alert "Tie bet must be a non-negative, whole number.")
           (not (nat-int? panda-bet)) (js/alert "Panda insurance must be a non-negative, whole number.")
           (not (nat-int? dragon-bet)) (js/alert "Dragon insurance must be a non-negative, whole number.")
-          (< @money (+ player-bet dealer-bet tie-bet panda-bet dragon-bet)) (js/alert "Sum of total bets placed exceeds your current funds.")
-          (= 0 (+ player-bet dealer-bet tie-bet panda-bet dragon-bet)) (js/alert "You cannot make a total bet of zero.")
-          :else (remote-callback :handle-bet
-                                 [player-bet dealer-bet tie-bet panda-bet dragon-bet]
-                                 #(bet-update %)))))
+          (not (val/sufficient-funds? bet-map @money)) (js/alert "Sum of total bets placed exceeds your current funds.")
+          (val/zero-total? bet-map) (js/alert "You cannot make a total bet of zero.")
+          :else bet-map)))
+
+(defn send-bet
+  "Sends bet to the server side via ajax."
+  []
+  (if-let [bet-map (get-bets)]
+    (remote-callback :handle-bet [bet-map] #(bet-update %))))
 
 (defn place-bets ;; Getting a bit long/repetetive?
   "Use these textboxes to place your bets."
