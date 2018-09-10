@@ -25,17 +25,12 @@ CSS:
 SVG:
   -???
 remotes:
-  -input validation, send error message to client if input was bogus somehow.
-  -do some spec here
   -handle a save command
   -handle a load command
-components/round-results:
-  -indicate diff in money.
 components/bet-update:
   -update running stats as much as possible
   -validate the results we get
   -spec?
-  -handle case where the server tells us about bogus input
 components/place-bet:
   -Is this a bit long or repetetive? Refactor with a macro or something?
 
