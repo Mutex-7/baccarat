@@ -8,12 +8,12 @@
             [shoreleave.remotes.http-rpc :refer [remote-callback]])
   (:require-macros [shoreleave.remotes.macros :as macros]))
 
-(def stats (reagent/atom {:player-wins 15
-                          :dealer-wins 16
-                          :ties 2
-                          :games-played 33
-                          :pandas 2
-                          :dragons 1}))
+(def stats (reagent/atom {:player-wins 0
+                          :dealer-wins 0
+                          :ties 0
+                          :games-played 0
+                          :pandas 0
+                          :dragons 0}))
 
 (def last-round (reagent/atom {:player-hand [0 1 2]
                                :dealer-hand [0 1 2]
@@ -59,18 +59,30 @@
   (if (string? bet-results) ;; If result was an error message
     (js/alert bet-results)
     (do
-      (swap! last-round assoc :money-diff (- (:money bet-results) @money))
-      (reset! money (:money bet-results))
-      (swap! last-round assoc :player-hand (:player-hand bet-results))
-      (swap! last-round assoc :dealer-hand (:dealer-hand bet-results))
-      (if (and (= 8 (engine/score (:player-hand bet-results)))
-               (pos? (js/Number (:panda-bet @current-bet))))
-        (swap! last-round assoc :panda true)
-        (swap! last-round assoc :panda false))
-      (if (and (= 7 (engine/score (:dealer-hand bet-results)))
-               (pos? (js/Number (:dragon-bet @current-bet))))
-        (swap! last-round assoc :dragon true)
-        (swap! last-round assoc :dragon false)))))
+      (let [player-hand (:player-hand bet-results)
+            dealer-hand (:dealer-hand bet-results)
+            player-score (engine/score player-hand)
+            dealer-score (engine/score dealer-hand)]
+        (swap! last-round assoc :money-diff (- (:money bet-results) @money))
+        (reset! money (:money bet-results))
+        (swap! last-round assoc :player-hand player-hand)
+        (swap! last-round assoc :dealer-hand dealer-hand)
+        (if (and (= 8 player-score)
+                 (pos? (js/Number (:panda-bet @current-bet))))
+          (swap! last-round assoc :panda true)
+          (swap! last-round assoc :panda false))
+        (if (and (= 7 dealer-score)
+                 (pos? (js/Number (:dragon-bet @current-bet))))
+          (swap! last-round assoc :dragon true)
+          (swap! last-round assoc :dragon false))
+        (cond (> player-score dealer-score) (swap! stats update :player-wins inc)
+              (< player-score dealer-score) (swap! stats update :dealer-wins inc)
+              (= player-score dealer-score) (swap! stats update :ties inc))
+        (swap! stats update :games-played inc)
+        (when (= 8 player-score)
+          (swap! stats update :pandas inc))
+        (when (= 7 dealer-score)
+          (swap! stats update :dragons inc))))))
 
 (defn get-bets
   []
@@ -98,7 +110,7 @@
 (defn place-bets ;; Getting a bit long/repetetive?
   "Use these textboxes to place your bets."
   []
-  [:div {:id "place-bets"}
+  [:div
    [:div "Place your bets:"]
    [:form
     [:div "Player bet"]
@@ -143,15 +155,14 @@
 (defn stats-table
   "Displays running totals of various game stats."
   [stats]
-  [:div {:id stats-table}
+  [:div
    [:div "Statistics:"]
-   [:div "Player wins: " (:player-wins stats)]
-   [:div "Dealer wins: " (:dealer-wins stats)]
-   [:div "Ties: " (:ties stats)]
-   [:div "Games played: " (:games-played stats)]
-   [:div "Pandas: " (:pandas stats)]
-   [:div "Dragons: " (:dragons stats)]
-   [:div "Money: " (:money stats)]])
+   [:div "Player wins: " (:player-wins @stats)]
+   [:div "Dealer wins: " (:dealer-wins @stats)]
+   [:div "Ties: " (:ties @stats)]
+   [:div "Games played: " (:games-played @stats)]
+   [:div "Pandas: " (:pandas @stats)]
+   [:div "Dragons: " (:dragons @stats)]])
 
 (defn display-money
   [money]
@@ -160,8 +171,8 @@
 (defn left-side
   "Displays left side of screen."
   []
-  [:div {:id "left"}
-   #_[stats-table @stats]
+  [:div
+   [stats-table stats]
    [place-bets]
    [display-money money]
    [round-results last-round]])
@@ -169,7 +180,7 @@
 (defn full-screen
   "Just a default component"
   [stats]
-  [:div {:id "fullscreen"}
+  [:div
    [left-side]])
 
 (defn ^:export init []

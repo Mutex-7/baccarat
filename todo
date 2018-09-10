@@ -27,10 +27,6 @@ SVG:
 remotes:
   -handle a save command
   -handle a load command
-components/bet-update:
-  -update running stats as much as possible
-  -validate the results we get
-  -spec?
 components/place-bet:
   -Is this a bit long or repetetive? Refactor with a macro or something?
 
