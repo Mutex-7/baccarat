@@ -13,10 +13,15 @@
                           :ties 0
                           :games-played 0
                           :pandas 0
-                          :dragons 0}))
+                          :dragons 0
+                          :successfull-player-bets 0
+                          :successfull-dealer-bets 0
+                          :successfull-tie-bets 0
+                          :successfull-panda-bets 0
+                          :successfull-dragon-bets 0}))
 
-(def last-round (reagent/atom {:player-hand [0 1 2]
-                               :dealer-hand [0 1 2]
+(def last-round (reagent/atom {:player-hand [0 0 0]
+                               :dealer-hand [0 0 0]
                                :panda false
                                :dragon false
                                :money-diff 0}))
@@ -27,7 +32,69 @@
                                 :panda-bet 0
                                 :dragon-bet 0}))
 
-(def money (reagent/atom engine/starting-money)) ;; not always the case. make sure to try for @session's :money
+(def money (reagent/atom engine/starting-money))
+
+(defn synchronize-ui
+  "Synchronize UI with server-side session information."
+  []
+  (remote-callback :sync
+                   []
+                   #(do
+                      (reset! stats (dissoc % :money))
+                      (reset! money (:money %)))))
+
+(defn bet-update
+  "Places results of bet into reagent atoms."
+  [bet-results]
+  (if (string? bet-results) ;; If result was an error message
+    (js/alert bet-results)
+    (let [player-hand (:player-hand bet-results)
+          dealer-hand (:dealer-hand bet-results)
+          player-score (engine/score player-hand)
+          dealer-score (engine/score dealer-hand)]
+      (swap! last-round assoc :money-diff (- (:money bet-results) @money))
+      (reset! money (:money bet-results))
+      (swap! last-round assoc :player-hand player-hand)
+      (swap! last-round assoc :dealer-hand dealer-hand)
+      (if (and (= 8 player-score)
+               (pos? (js/Number (:panda-bet @current-bet))))
+        (swap! last-round assoc :panda true)
+        (swap! last-round assoc :panda false))
+      (if (and (= 7 dealer-score)
+               (pos? (js/Number (:dragon-bet @current-bet))))
+        (swap! last-round assoc :dragon true)
+        (swap! last-round assoc :dragon false))
+      (cond (> player-score dealer-score) (swap! stats update :player-wins inc)
+            (< player-score dealer-score) (swap! stats update :dealer-wins inc)
+            (= player-score dealer-score) (swap! stats update :ties inc))
+      (swap! stats update :games-played inc)
+      (when (= 8 player-score)
+        (swap! stats update :pandas inc))
+      (when (= 7 dealer-score)
+        (swap! stats update :dragons inc)))))
+
+(defn get-bets
+  []
+  (let [player-bet (js/Number (:player-bet @current-bet))
+        dealer-bet (js/Number (:dealer-bet @current-bet))
+        tie-bet (js/Number (:tie-bet @current-bet))
+        panda-bet (js/Number (:panda-bet @current-bet))
+        dragon-bet (js/Number (:dragon-bet @current-bet))
+        bet-map (engine/new-bet player-bet dealer-bet tie-bet panda-bet dragon-bet)]
+    (cond (not (nat-int? player-bet)) (js/alert "Player bet must be a non-negative, whole number.")
+          (not (nat-int? dealer-bet)) (js/alert "Dealer bet must be a non-negative, whole number.")
+          (not (nat-int? tie-bet)) (js/alert "Tie bet must be a non-negative, whole number.")
+          (not (nat-int? panda-bet)) (js/alert "Panda insurance must be a non-negative, whole number.")
+          (not (nat-int? dragon-bet)) (js/alert "Dragon insurance must be a non-negative, whole number.")
+          (not (val/sufficient-funds? bet-map @money)) (js/alert "Sum of total bets placed exceeds your current funds.")
+          (val/zero-total? bet-map) (js/alert "You cannot make a total bet of zero.")
+          :else bet-map)))
+
+(defn send-bet
+  "Sends bet to the server side via ajax."
+  []
+  (if-let [bet-map (get-bets)]
+    (remote-callback :handle-bet [bet-map] #(bet-update %))))
 
 (defn round-results
   "Displays results of last hand."
@@ -53,61 +120,7 @@
      (when (:dragon @last-round)
        [:div "Dragon insurance has paid off!"])]))
 
-(defn bet-update
-  "Places results of bet into reagent atoms."
-  [bet-results]
-  (if (string? bet-results) ;; If result was an error message
-    (js/alert bet-results)
-    (do
-      (let [player-hand (:player-hand bet-results)
-            dealer-hand (:dealer-hand bet-results)
-            player-score (engine/score player-hand)
-            dealer-score (engine/score dealer-hand)]
-        (swap! last-round assoc :money-diff (- (:money bet-results) @money))
-        (reset! money (:money bet-results))
-        (swap! last-round assoc :player-hand player-hand)
-        (swap! last-round assoc :dealer-hand dealer-hand)
-        (if (and (= 8 player-score)
-                 (pos? (js/Number (:panda-bet @current-bet))))
-          (swap! last-round assoc :panda true)
-          (swap! last-round assoc :panda false))
-        (if (and (= 7 dealer-score)
-                 (pos? (js/Number (:dragon-bet @current-bet))))
-          (swap! last-round assoc :dragon true)
-          (swap! last-round assoc :dragon false))
-        (cond (> player-score dealer-score) (swap! stats update :player-wins inc)
-              (< player-score dealer-score) (swap! stats update :dealer-wins inc)
-              (= player-score dealer-score) (swap! stats update :ties inc))
-        (swap! stats update :games-played inc)
-        (when (= 8 player-score)
-          (swap! stats update :pandas inc))
-        (when (= 7 dealer-score)
-          (swap! stats update :dragons inc))))))
-
-(defn get-bets
-  []
-  (let [player-bet (js/Number (:player-bet @current-bet))
-        dealer-bet (js/Number (:dealer-bet @current-bet))
-        tie-bet (js/Number (:tie-bet @current-bet))
-        panda-bet (js/Number (:panda-bet @current-bet))
-        dragon-bet (js/Number (:dragon-bet @current-bet))
-        bet-map (engine/new-bet player-bet dealer-bet tie-bet panda-bet dragon-bet)]
-    (cond (not (nat-int? player-bet)) (js/alert "Player bet must be a non-negative, whole number.")
-          (not (nat-int? dealer-bet)) (js/alert "Dealer bet must be a non-negative, whole number.")
-          (not (nat-int? tie-bet)) (js/alert "Tie bet must be a non-negative, whole number.")
-          (not (nat-int? panda-bet)) (js/alert "Panda insurance must be a non-negative, whole number.")
-          (not (nat-int? dragon-bet)) (js/alert "Dragon insurance must be a non-negative, whole number.")
-          (not (val/sufficient-funds? bet-map @money)) (js/alert "Sum of total bets placed exceeds your current funds.")
-          (val/zero-total? bet-map) (js/alert "You cannot make a total bet of zero.")
-          :else bet-map)))
-
-(defn send-bet
-  "Sends bet to the server side via ajax."
-  []
-  (if-let [bet-map (get-bets)]
-    (remote-callback :handle-bet [bet-map] #(bet-update %))))
-
-(defn place-bets ;; Getting a bit long/repetetive?
+(defn place-bets
   "Use these textboxes to place your bets."
   []
   [:div
@@ -177,9 +190,10 @@
    [display-money money]
    [round-results last-round]])
 
-(defn full-screen
+(defn full-screen ;; run update UI code here?
   "Just a default component"
   [stats]
+  (synchronize-ui)
   [:div
    [left-side]])
 

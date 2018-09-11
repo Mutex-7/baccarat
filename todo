@@ -27,8 +27,8 @@ SVG:
 remotes:
   -handle a save command
   -handle a load command
-components/place-bet:
-  -Is this a bit long or repetetive? Refactor with a macro or something?
+Entire right side display
+Then go graphical?
 
 Bugs:
 Spamming insurance bets = surefire money making scheme. Not right at all. What's up with that?

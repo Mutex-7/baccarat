@@ -25,3 +25,7 @@
        :dealer-hand (:dealer-hand (last (:history @session)))
        :money (:money @session)})
     "Invalid bet was placed."))
+
+(defremote sync
+  []
+  (engine/calc-stats (:history @session)))
