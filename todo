@@ -19,16 +19,14 @@ Client has button to save game to edn.
 Then to deal with this shitty UI.
 
 TODO:
+Load and reloads should redraw the round-results component. 
+Load and save using most recent save file, not just one save-slot.
+  -use this for saves: (spit (str (java.util.Date.)) @session)
+Entire right side display. Text-based at first, just to get it working.
+Then go graphical? Not really sure how.
 CSS:
   -have the textboxes beside the label, not under.
   -get all historical display components to be in a second column on the screen.
-SVG:
-  -???
-remotes:
-  -handle a save command
-  -handle a load command
-Entire right side display
-Then go graphical?
 
 Bugs:
 Spamming insurance bets = surefire money making scheme. Not right at all. What's up with that?

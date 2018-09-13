@@ -34,14 +34,16 @@
 
 (def money (reagent/atom engine/starting-money))
 
+(defn set-ui-data ;; TODO reset things like previous hand, money-diff, scores, results.
+  [data]
+  (do
+    (reset! stats (dissoc data :money))
+    (reset! money (:money data))))
+
 (defn synchronize-ui
   "Synchronize UI with server-side session information."
   []
-  (remote-callback :sync
-                   []
-                   #(do
-                      (reset! stats (dissoc % :money))
-                      (reset! money (:money %)))))
+  (remote-callback :ui-sync [] #(set-ui-data %)))
 
 (defn bet-update
   "Places results of bet into reagent atoms."
@@ -95,6 +97,24 @@
   []
   (if-let [bet-map (get-bets)]
     (remote-callback :handle-bet [bet-map] #(bet-update %))))
+
+(defn save-game
+  []
+  (remote-callback :save-game [] #(js/alert %)))
+
+(defn load-game
+  []
+  (remote-callback :load-game [] #(set-ui-data %)))
+
+(defn load-and-save
+  []
+  [:div
+   [:button {:id "load-button"
+             :on-click #(load-game)}
+    "Load game"]
+   [:button {:id "save-button"
+             :on-click #(save-game)}
+    "Save game"]])
 
 (defn round-results
   "Displays results of last hand."
@@ -188,9 +208,10 @@
    [stats-table stats]
    [place-bets]
    [display-money money]
-   [round-results last-round]])
+   [round-results last-round]
+   [load-and-save]])
 
-(defn full-screen ;; run update UI code here?
+(defn full-screen
   "Just a default component"
   [stats]
   (synchronize-ui)

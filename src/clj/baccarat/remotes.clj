@@ -26,6 +26,16 @@
        :money (:money @session)})
     "Invalid bet was placed."))
 
-(defremote sync
+(defremote ui-sync
   []
   (engine/calc-stats (:history @session)))
+
+(defremote load-game
+  []
+  (reset! session (read-string (slurp "baccarat.edn")))
+  (engine/calc-stats (:history @session)))
+
+(defremote save-game
+  []
+  (spit "baccarat.edn" @session)
+  "Game has been saved.")

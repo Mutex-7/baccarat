@@ -9,3 +9,4 @@
 .directory
 .nrepl-history
 /out
+*.edn
