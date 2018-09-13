@@ -1,222 +1,175 @@
 (ns baccarat.components
   (:require [reagent.core :as reagent]
-            [cljsjs.marked]
-            [clojure.string]
             [baccarat.engine :as engine]
-            [cljs.reader :refer [read-string]]
             [baccarat.validators :as val]
+            [baccarat.stats :as stats]
             [shoreleave.remotes.http-rpc :refer [remote-callback]])
   (:require-macros [shoreleave.remotes.macros :as macros]))
 
-(def stats (reagent/atom {:player-wins 0
-                          :dealer-wins 0
-                          :ties 0
-                          :games-played 0
-                          :pandas 0
-                          :dragons 0
-                          :successfull-player-bets 0
-                          :successfull-dealer-bets 0
-                          :successfull-tie-bets 0
-                          :successfull-panda-bets 0
-                          :successfull-dragon-bets 0}))
+(def history (reagent/atom []))
 
-(def last-round (reagent/atom {:player-hand [0 0 0]
-                               :dealer-hand [0 0 0]
-                               :panda false
-                               :dragon false
-                               :money-diff 0}))
-
-(def current-bet (reagent/atom {:player-bet 0
-                                :dealer-bet 0
-                                :tie-bet 0
-                                :panda-bet 0
-                                :dragon-bet 0}))
-
-(def money (reagent/atom engine/starting-money))
-
-(defn set-ui-data ;; TODO reset things like previous hand, money-diff, scores, results.
-  [data]
-  (do
-    (reset! stats (dissoc data :money))
-    (reset! money (:money data))))
-
-(defn synchronize-ui
-  "Synchronize UI with server-side session information."
+(defn load-and-save
+  "Component for load and save buttons."
   []
-  (remote-callback :ui-sync [] #(set-ui-data %)))
+  [:div
+   [:button {:id "load-button"
+             :on-click #(remote-callback :load-game [] (fn [response]
+                                                         (if (string? response)
+                                                           (js/alert response)
+                                                           (reset! history response))))}
+    "Load game"]
+   [:button {:id "save-button"
+             :on-click #(remote-callback :save-game [] (fn [response]
+                                                         (js/alert response)))}
+    "Save game"]])
 
-(defn bet-update
-  "Places results of bet into reagent atoms."
-  [bet-results]
-  (if (string? bet-results) ;; If result was an error message
-    (js/alert bet-results)
-    (let [player-hand (:player-hand bet-results)
-          dealer-hand (:dealer-hand bet-results)
-          player-score (engine/score player-hand)
-          dealer-score (engine/score dealer-hand)]
-      (swap! last-round assoc :money-diff (- (:money bet-results) @money))
-      (reset! money (:money bet-results))
-      (swap! last-round assoc :player-hand player-hand)
-      (swap! last-round assoc :dealer-hand dealer-hand)
-      (if (and (= 8 player-score)
-               (pos? (js/Number (:panda-bet @current-bet))))
-        (swap! last-round assoc :panda true)
-        (swap! last-round assoc :panda false))
-      (if (and (= 7 dealer-score)
-               (pos? (js/Number (:dragon-bet @current-bet))))
-        (swap! last-round assoc :dragon true)
-        (swap! last-round assoc :dragon false))
-      (cond (> player-score dealer-score) (swap! stats update :player-wins inc)
-            (< player-score dealer-score) (swap! stats update :dealer-wins inc)
-            (= player-score dealer-score) (swap! stats update :ties inc))
-      (swap! stats update :games-played inc)
-      (when (= 8 player-score)
-        (swap! stats update :pandas inc))
-      (when (= 7 dealer-score)
-        (swap! stats update :dragons inc)))))
-
-(defn get-bets
+(defn bead-plate
+  "Displays the bead plate."
   []
-  (let [player-bet (js/Number (:player-bet @current-bet))
-        dealer-bet (js/Number (:dealer-bet @current-bet))
-        tie-bet (js/Number (:tie-bet @current-bet))
-        panda-bet (js/Number (:panda-bet @current-bet))
-        dragon-bet (js/Number (:dragon-bet @current-bet))
+  [:div "Bead plate goes here."])
+
+(defn round-results
+  "Displays results of last hand."
+  [history]
+  (if-let [last-round (last history)]
+    (let [player-score (engine/score (:player-hand last-round))
+          dealer-score (engine/score (:dealer-hand last-round))
+          winning-hand (cond (= player-score dealer-score) "Hand was a tie."
+                             (> player-score dealer-score) "Player hand wins."
+                             (< player-score dealer-score) "Dealer hand wins."
+                             :else "No idea what just happened. Ask Mutex, give him your save file.")]
+      [:div
+       [:div "Round results:"]
+       [:div "Player's cards were: " (for [card-num (:player-hand last-round)]
+                                       (str (engine/num->card card-num) " "))]
+       [:div "Player's score was: " player-score]
+       [:div "Dealer's cards were: " (for [card-num (:dealer-hand last-round)]
+                                       (str (engine/num->card card-num) " "))]
+       [:div "Dealer's score was: " dealer-score]
+       [:div "Money diff: *out of order*"] ;; FIXME
+       [:div winning-hand]
+       (when (and (= 8 player-score)
+                  (pos? (:panda-bet (:round-bet last-round))))
+         [:div "Panda insurance has paid off!"])
+       (when (and (= 7 dealer-score)
+                  (pos? (:dragon-bet (:round-bet last-round))))
+         [:div "Dragon insurance has paid off!"])])))
+
+(defn validate-bet
+  [bet money]
+  (let [player-bet (js/Number (:player-bet bet))
+        dealer-bet (js/Number (:dealer-bet bet))
+        tie-bet (js/Number (:tie-bet bet))
+        panda-bet (js/Number (:panda-bet bet))
+        dragon-bet (js/Number (:dragon-bet bet))
         bet-map (engine/new-bet player-bet dealer-bet tie-bet panda-bet dragon-bet)]
     (cond (not (nat-int? player-bet)) (js/alert "Player bet must be a non-negative, whole number.")
           (not (nat-int? dealer-bet)) (js/alert "Dealer bet must be a non-negative, whole number.")
           (not (nat-int? tie-bet)) (js/alert "Tie bet must be a non-negative, whole number.")
           (not (nat-int? panda-bet)) (js/alert "Panda insurance must be a non-negative, whole number.")
           (not (nat-int? dragon-bet)) (js/alert "Dragon insurance must be a non-negative, whole number.")
-          (not (val/sufficient-funds? bet-map @money)) (js/alert "Sum of total bets placed exceeds your current funds.")
+          (not (val/sufficient-funds? bet-map money)) (js/alert "Sum of total bets placed exceeds your current funds.")
           (val/zero-total? bet-map) (js/alert "You cannot make a total bet of zero.")
           :else bet-map)))
-
-(defn send-bet
-  "Sends bet to the server side via ajax."
-  []
-  (if-let [bet-map (get-bets)]
-    (remote-callback :handle-bet [bet-map] #(bet-update %))))
-
-(defn save-game
-  []
-  (remote-callback :save-game [] #(js/alert %)))
-
-(defn load-game
-  []
-  (remote-callback :load-game [] #(set-ui-data %)))
-
-(defn load-and-save
-  []
-  [:div
-   [:button {:id "load-button"
-             :on-click #(load-game)}
-    "Load game"]
-   [:button {:id "save-button"
-             :on-click #(save-game)}
-    "Save game"]])
-
-(defn round-results
-  "Displays results of last hand."
-  [last-round]
-  (let [player-score (engine/score (:player-hand @last-round))
-        dealer-score (engine/score (:dealer-hand @last-round))
-        winning-hand (cond (= player-score dealer-score) "Hand was a tie."
-                           (> player-score dealer-score) "Player hand wins."
-                           (< player-score dealer-score) "Dealer hand wins."
-                           :else "No idea what just happened. Ask Mutex, give him your history file.")]
-    [:div
-     [:div "Round results:"]
-     [:div "Player's cards were: " (for [card-num (:player-hand @last-round)]
-                                     (str (engine/num->card card-num) " "))]
-     [:div "Player's score was: " player-score]
-     [:div "Dealer's cards were: " (for [card-num (:dealer-hand @last-round)]
-                                     (str (engine/num->card card-num) " "))]
-     [:div "Dealer's score was: " dealer-score]
-     [:div "Money diff: " (:money-diff @last-round)]
-     [:div winning-hand]
-     (when (:panda @last-round)
-       [:div "Panda insurance has paid off!"])
-     (when (:dragon @last-round)
-       [:div "Dragon insurance has paid off!"])]))
 
 (defn place-bets
   "Use these textboxes to place your bets."
   []
-  [:div
-   [:div "Place your bets:"]
-   [:form
-    [:div "Player bet"]
-    [:input {:id "player-bet"
-             :type "text"
-             :placeholder "0"
-             :on-change #(swap! current-bet assoc :player-bet (-> %
-                                                                  .-target
-                                                                  .-value))}]
-    [:div "Dealer bet"]
-    [:input {:id "dealer-bet"
-             :type "text"
-             :placeholder "0"
-             :on-change #(swap! current-bet assoc :dealer-bet (-> %
-                                                                  .-target
-                                                                  .-value))}]
-    [:div "Tie bet"]
-    [:input {:id "tie-bet"
-             :type "text"
-             :placeholder "0"
-             :on-change #(swap! current-bet assoc :tie-bet (-> %
-                                                               .-target
-                                                               .-value))}]
-    [:div "Panda eight"]
-    [:input {:id "panda-bet"
-             :type "text"
-             :placeholder "0"
-             :on-change #(swap! current-bet assoc :panda-bet (-> %
-                                                                 .-target
-                                                                 .-value))}]
-    [:div "Dragon seven"]
-    [:input {:id "dragon-bet"
-             :type "text"
-             :placeholder "0"
-             :on-change #(swap! current-bet assoc :dragon-bet (-> %
-                                                                  .-target
-                                                                  .-value))}]
-    [:input {:type "button"
-             :value "Place bet"
-             :on-click #(send-bet)}]]])
+  (let [current-bet (reagent/atom {:player-bet 0
+                                   :dealer-bet 0
+                                   :tie-bet 0
+                                   :panda-bet 0
+                                   :dragon-bet 0})]
+    (fn []
+      [:div
+       [:div "Place your bets:"]
+       [:form
+        [:div "Player bet"]
+        [:input {:id "player-bet"
+                 :type "text"
+                 :placeholder "0"
+                 :on-change #(swap! current-bet assoc :player-bet (-> %
+                                                                      .-target
+                                                                      .-value))}]
+        [:div "Dealer bet"]
+        [:input {:id "dealer-bet"
+                 :type "text"
+                 :placeholder "0"
+                 :on-change #(swap! current-bet assoc :dealer-bet (-> %
+                                                                      .-target
+                                                                      .-value))}]
+        [:div "Tie bet"]
+        [:input {:id "tie-bet"
+                 :type "text"
+                 :placeholder "0"
+                 :on-change #(swap! current-bet assoc :tie-bet (-> %
+                                                                   .-target
+                                                                   .-value))}]
+        [:div "Panda eight"]
+        [:input {:id "panda-bet"
+                 :type "text"
+                 :placeholder "0"
+                 :on-change #(swap! current-bet assoc :panda-bet (-> %
+                                                                     .-target
+                                                                     .-value))}]
+        [:div "Dragon seven"]
+        [:input {:id "dragon-bet"
+                 :type "text"
+                 :placeholder "0"
+                 :on-change #(swap! current-bet assoc :dragon-bet (-> %
+                                                                      .-target
+                                                                      .-value))}]
+        [:input {:type "button"
+                 :value "Place bet"
+                 :on-click #(if-let [bet-map (validate-bet @current-bet (stats/money @history))]
+                              (remote-callback :handle-bet [bet-map] (fn [response]
+                                                                       (if (string? response)
+                                                                         (js/alert response)
+                                                                         (reset! history (conj @history response))))))}]]])))
 
 (defn stats-table
   "Displays running totals of various game stats."
-  [stats]
-  [:div
-   [:div "Statistics:"]
-   [:div "Player wins: " (:player-wins @stats)]
-   [:div "Dealer wins: " (:dealer-wins @stats)]
-   [:div "Ties: " (:ties @stats)]
-   [:div "Games played: " (:games-played @stats)]
-   [:div "Pandas: " (:pandas @stats)]
-   [:div "Dragons: " (:dragons @stats)]])
+  [history]
+  (when (not (empty? history))
+    [:div
+     [:div "Statistics:"]
+     [:div "Player wins: " (stats/player-wins history)]
+     [:div "Dealer wins: " (stats/dealer-wins history)]
+     [:div "Ties: " (stats/ties history)]
+     [:div "All pandas: " (stats/all-pandas history)]
+     [:div "All dragons: " (stats/all-dragons history)]
+     [:div "Games played: " (count history)]
+     [:div "Player bet wins: " (stats/player-bet-wins history)]
+     [:div "Dealer bet wins: " (stats/dealer-bet-wins history)]
+     [:div "Tie bet wins: " (stats/tie-bet-wins history)]
+     [:div "Panda bet wins: " (stats/panda-bet-wins history)]
+     [:div "Dragon bet wins: " (stats/dragon-bet-wins history)]]))
 
-(defn display-money
-  [money]
-  [:div "Your money is: " @money])
+(defn right-side
+  "Displays various representations of historical data."
+  []
+  [:div
+   [bead-plate]])
 
 (defn left-side
   "Displays left side of screen."
   []
   [:div
-   [stats-table stats]
+   [stats-table @history]
    [place-bets]
-   [display-money money]
-   [round-results last-round]
+   (if (not (empty? @history))
+     [:div "Your money is " (stats/money @history)]
+     [:div "Your money is 0"])
+   [round-results @history]
    [load-and-save]])
 
 (defn full-screen
   "Just a default component"
   [stats]
-  (synchronize-ui)
+  (remote-callback :history [] #(reset! history %))
   [:div
-   [left-side]])
+   [left-side]
+   [right-side]])
 
 (defn ^:export init []
   (reagent/render [full-screen] (.getElementById js/document "content")))

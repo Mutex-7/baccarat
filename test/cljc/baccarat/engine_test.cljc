@@ -4,9 +4,9 @@
                                                 dealer-draw?
                                                 shoe-check
                                                 score
-                                                update-money
                                                 new-bet
                                                 new-record]]
+            [baccarat.stats :as stats :refer [update-money]]
             #?(:clj [clojure.test :refer [deftest are testing is]]
                :cljs [cljs.test :refer [deftest are testing is]])))
 

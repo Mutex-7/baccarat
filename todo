@@ -1,28 +1,21 @@
-The plan:
-Server boots up.
-Starts new game immediately.
-Send new game page to client.
-Client starts with new game.
-
-Client has a button to load most recent save.
-  Send load message to server.
-  Server parses file on disk. Validation, etc. Spec!
-  Sends game data to client. Will have to send entire history as well.
-  Client parses. Spec?
-  Client updates it's atoms.
-
-Client has button to save game to edn.
-  Notify server to save the game.
-  Server saves a copy of the game state to disk.
-  Server notifies client that game was saved (un?)successfully.
-
-Then to deal with this shitty UI.
-
 TODO:
-Load and reloads should redraw the round-results component. 
 Load and save using most recent save file, not just one save-slot.
   -use this for saves: (spit (str (java.util.Date.)) @session)
 Entire right side display. Text-based at first, just to get it working.
+  -Player is blue, dealer is red, ties are green.
+  -Plates move top to bottom, left to right.
+  -Use colored numbers, instead of a grid?
+  -bead plate: display winning hands.
+  -big road:
+    -move to next column when the other player wins.
+    -green slash through the circle when next hand is a tie, or a natural win.
+    -determine max hight needed here, based on chance it'll happen.
+  -big eye boy:
+    -on big road column change, if depths were the same, record a red circle. else a blue.
+    -if the current hand is the same result (skipping ties) as the previous one, compare BR left and BR left-up. if same, red, else blue.
+    -basically check BR left and BR left-up. same? red. not same? blue.
+  -other things:
+    -why TF is this so complicated? for a game where you ultimately lose in the long run... smh.
 Then go graphical? Not really sure how.
 CSS:
   -have the textboxes beside the label, not under.
@@ -30,3 +23,4 @@ CSS:
 
 Bugs:
 Spamming insurance bets = surefire money making scheme. Not right at all. What's up with that?
+stats/money and stats/update-money are a bit slow. Can sense lag if you spam bets.
