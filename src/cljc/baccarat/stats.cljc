@@ -3,7 +3,9 @@
 
 (defn calc
   [history predicate?]
-  (count (filter predicate? history)))
+  (if (empty? history)
+    0
+    (count (filter predicate? history))))
 
 (defn player-wins
   [history]

@@ -130,20 +130,19 @@
 (defn stats-table
   "Displays running totals of various game stats."
   [history]
-  (when (not (empty? history))
-    [:div
-     [:div "Statistics:"]
-     [:div "Player wins: " (stats/player-wins history)]
-     [:div "Dealer wins: " (stats/dealer-wins history)]
-     [:div "Ties: " (stats/ties history)]
-     [:div "All pandas: " (stats/all-pandas history)]
-     [:div "All dragons: " (stats/all-dragons history)]
-     [:div "Games played: " (count history)]
-     [:div "Player bet wins: " (stats/player-bet-wins history)]
-     [:div "Dealer bet wins: " (stats/dealer-bet-wins history)]
-     [:div "Tie bet wins: " (stats/tie-bet-wins history)]
-     [:div "Panda bet wins: " (stats/panda-bet-wins history)]
-     [:div "Dragon bet wins: " (stats/dragon-bet-wins history)]]))
+  [:div
+   [:div "Statistics:"]
+   [:div "Player wins: " (stats/player-wins history)]
+   [:div "Dealer wins: " (stats/dealer-wins history)]
+   [:div "Ties: " (stats/ties history)]
+   [:div "All pandas: " (stats/all-pandas history)]
+   [:div "All dragons: " (stats/all-dragons history)]
+   [:div "Games played: " (count history)]
+   [:div "Player bet wins: " (stats/player-bet-wins history)]
+   [:div "Dealer bet wins: " (stats/dealer-bet-wins history)]
+   [:div "Tie bet wins: " (stats/tie-bet-wins history)]
+   [:div "Panda bet wins: " (stats/panda-bet-wins history)]
+   [:div "Dragon bet wins: " (stats/dragon-bet-wins history)]])
 
 (defn right-side
   "Displays various representations of historical data."
@@ -157,9 +156,7 @@
   [:div
    [stats-table @history]
    [place-bets]
-   (if (not (empty? @history))
-     [:div "Your money is " (stats/money @history)]
-     [:div "Your money is 0"])
+   [:div "Your money is " (stats/money @history)]
    [round-results @history]
    [load-and-save]])
 
