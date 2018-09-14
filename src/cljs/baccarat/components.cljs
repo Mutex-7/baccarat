@@ -46,7 +46,9 @@
        [:div "Dealer's cards were: " (for [card-num (:dealer-hand last-round)]
                                        (str (engine/num->card card-num) " "))]
        [:div "Dealer's score was: " dealer-score]
-       [:div "Money diff: *out of order*"] ;; FIXME
+       [:div "Money diff: " (if (= 1 (count history))
+                              (- (stats/money history) engine/starting-money)
+                              (- (stats/money history) (stats/money (butlast history))))]
        [:div winning-hand]
        (when (and (= 8 player-score)
                   (pos? (:panda-bet (:round-bet last-round))))
@@ -138,11 +140,11 @@
    [:div "All pandas: " (stats/all-pandas history)]
    [:div "All dragons: " (stats/all-dragons history)]
    [:div "Games played: " (count history)]
-   [:div "Player bet wins: " (stats/player-bet-wins history)]
-   [:div "Dealer bet wins: " (stats/dealer-bet-wins history)]
-   [:div "Tie bet wins: " (stats/tie-bet-wins history)]
-   [:div "Panda bet wins: " (stats/panda-bet-wins history)]
-   [:div "Dragon bet wins: " (stats/dragon-bet-wins history)]])
+   #_[:div "Player bet wins: " (stats/player-bet-wins history)]
+   #_[:div "Dealer bet wins: " (stats/dealer-bet-wins history)]
+   #_[:div "Tie bet wins: " (stats/tie-bet-wins history)]
+   #_[:div "Panda bet wins: " (stats/panda-bet-wins history)]
+   #_[:div "Dragon bet wins: " (stats/dragon-bet-wins history)]])
 
 (defn right-side
   "Displays various representations of historical data."
@@ -158,7 +160,7 @@
    [place-bets]
    [:div "Your money is " (stats/money @history)]
    [round-results @history]
-   [load-and-save]])
+   #_[load-and-save]])
 
 (defn full-screen
   "Just a default component"
