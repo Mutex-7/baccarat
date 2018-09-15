@@ -153,18 +153,35 @@
   [history]
   (map record->bead history))
 
-(def table-size (* 6 2))
+(def table-height 6)
+(def table-width 14)
+(def table-size (* table-height table-width))
 (defn bead-plate
   "Displays the bead plate."
   [history]
-  (let [beads (take table-size (concat (take-last table-size (hist->beads history)) (take table-size (repeat "B"))))]
-    [:div "Bead plate: " (for [bead beads]
-                           ^{:key bead} (str bead " "))]))
+  (let [beads (take table-size (concat (take-last table-size (hist->beads history))
+                                       (take table-size (repeat "B"))))]
+    [:table {:style {:border "1px solid black"
+                     :border-collapse "collapse"}}
+     [:tbody
+      (for [row (range table-height)]
+        ^{:key row}
+        [:tr {:style {:border "1px solid black"}}
+         (for [col (range table-width)]
+           (let [bead (nth beads (+ col (* table-height row)))]
+             ^{:key col}
+             [:td {:style {:border "1px solid black"
+                           :background-color (cond (= bead "T") "green"
+                                                   (= bead "P") "blue"
+                                                   (= bead "D") "red"
+                                                   :else "white")}}
+              bead]))])]]))
 
 (defn right-side
   "Displays various representations of historical data."
   []
   [:div
+   [:div "Bead plate:"]
    [bead-plate @history]])
 
 (defn left-side
