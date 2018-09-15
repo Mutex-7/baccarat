@@ -168,7 +168,7 @@
         ^{:key row}
         [:tr {:style {:border "1px solid black"}}
          (for [col (range table-width)]
-           (let [bead (nth beads (+ col (* table-height row)))]
+           (let [bead (nth beads (+ row (* table-height col)))] ;; NOTE flipperoni happens right here. row and col are in each other's spot.
              ^{:key col}
              [:td {:style {:border "1px solid black"
                            :background-color (cond (= bead "T") "green"
