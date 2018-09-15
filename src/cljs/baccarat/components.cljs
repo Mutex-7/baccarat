@@ -23,11 +23,6 @@
                                                          (js/alert response)))}
     "Save game"]])
 
-(defn bead-plate
-  "Displays the bead plate."
-  []
-  [:div "Bead plate goes here."])
-
 (defn round-results
   "Displays results of last hand."
   [history]
@@ -146,11 +141,31 @@
    #_[:div "Panda bet wins: " (stats/panda-bet-wins history)]
    #_[:div "Dragon bet wins: " (stats/dragon-bet-wins history)]])
 
+(defn record->bead
+  [record]
+  (let [player-score (engine/score (:player-hand record))
+        dealer-score (engine/score (:dealer-hand record))]
+    (cond (= player-score dealer-score) "T"
+          (> player-score dealer-score) "P"
+          (< player-score dealer-score) "D")))
+
+(defn hist->beads
+  [history]
+  (map record->bead history))
+
+(def table-size (* 6 2))
+(defn bead-plate
+  "Displays the bead plate."
+  [history]
+  (let [beads (take table-size (concat (take-last table-size (hist->beads history)) (take table-size (repeat "B"))))]
+    [:div "Bead plate: " (for [bead beads]
+                           ^{:key bead} (str bead " "))]))
+
 (defn right-side
   "Displays various representations of historical data."
   []
   [:div
-   [bead-plate]])
+   [bead-plate @history]])
 
 (defn left-side
   "Displays left side of screen."
